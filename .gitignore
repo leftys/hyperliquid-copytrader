@@ -1,0 +1,8 @@
+.DS_Store
+*.spec
+*.pyc
+__pycache__/
+dist/
+build/
+venv/
+*Backup.py
