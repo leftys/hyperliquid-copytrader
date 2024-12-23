@@ -39,10 +39,16 @@ The built application will be in the `dist` folder.
 
 ## Scripts Overview
 
+# HyperLiquid Copy Trader
+
+
+## Scripts Overview
+
 ### OrderBot
 A bot that copies orders from a target account:
 - Monitors and copies open orders from a specified account
 - Maintains proportional position sizes based on account values
+- Only opens orders below entry price from target address
 - Handles order placement, cancellation, and updates
 - Includes 24-hour SLA monitoring
 - Supports limit orders with reduce-only option
@@ -50,11 +56,22 @@ A bot that copies orders from a target account:
 ### TradingBot 
 A position-based copy trading bot:
 - Copies positions instead of individual orders
+- Only opens positions below entry price from target address
 - Automatically adjusts position sizes based on account values
 - Includes price-aware entry strategy
 - Supports delayed trades for better entry prices
 - Provides detailed position monitoring and reporting
 - Handles position updates and closures
+
+## Controls
+- `Start Trading`: Bot begins monitoring and copying orders/positions that are below entry price from target address
+- `Stop Trading`: 
+  - Bot stops monitoring and copying new orders/positions
+  - Stops modifying existing orders
+  - Existing orders and positions remain open
+  - Manual cancellation required for open orders
+  - Manual closure required for open positions
+
 
 ## Configuration
 1. Server details (required for connection):
