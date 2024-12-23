@@ -1,6 +1,13 @@
+I'll update the README to include download instructions:
+
 # HyperLiquid Copy Trader
 
 Copy trading application for HyperLiquid.
+
+## Download
+1. Go to the [Releases](https://github.com/lucyCooked/hyperliquid-copytrader) section
+2. Download the latest version for your operating system
+3. Extract the downloaded file
 
 ## Prerequisites
 - Python 3.8+
@@ -9,17 +16,23 @@ Copy trading application for HyperLiquid.
 
 ## Installation
 
-1. Install required Python packages:
+1. Install Python 3.8+:
+   - Download the installer from [python.org](https://www.python.org/downloads/)
+   - Run the downloaded .pkg file
+   - Follow the installation wizard
+   - Verify installation: `python3 --version`
+
+2. Install required Python packages:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Install PM2 globally:
+3. Install PM2 globally:
 ```bash
 npm install pm2 -g
 ```
 
-3. For Mac users, build the application:
+4. For Mac users, build the application:
 ```bash
 python build_mac.py
 ```
