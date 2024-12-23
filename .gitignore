@@ -6,3 +6,5 @@ dist/
 build/
 venv/
 *Backup.py
+*.md
+readme-md.md
