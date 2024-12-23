@@ -1,11 +1,9 @@
-I'll update the README to include download instructions:
-
 # HyperLiquid Copy Trader
 
 Copy trading application for HyperLiquid.
 
 ## Download
-1. Go to the [Releases](https://github.com/lucyCooked/hyperliquid-copytrader) section
+1. Go to the [Releases](https://github.com/lucyCooked/hyperliquid-copytrader/releases) section
 2. Download the latest version for your operating system
 3. Extract the downloaded file
 
@@ -38,6 +36,25 @@ python build_mac.py
 ```
 
 The built application will be in the `dist` folder.
+
+## Scripts Overview
+
+### OrderBot
+A bot that copies orders from a target account:
+- Monitors and copies open orders from a specified account
+- Maintains proportional position sizes based on account values
+- Handles order placement, cancellation, and updates
+- Includes 24-hour SLA monitoring
+- Supports limit orders with reduce-only option
+
+### TradingBot 
+A position-based copy trading bot:
+- Copies positions instead of individual orders
+- Automatically adjusts position sizes based on account values
+- Includes price-aware entry strategy
+- Supports delayed trades for better entry prices
+- Provides detailed position monitoring and reporting
+- Handles position updates and closures
 
 ## Configuration
 1. Server details (required for connection):
