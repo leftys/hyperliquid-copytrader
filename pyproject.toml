@@ -8,11 +8,10 @@ packages = []
 
 [tool.poetry.dependencies]
 python = "^3.11"
-python-dotenv = "1.0.0"
+python-dotenv = "^1.0.0"
 eth-account = "0.10.0"
 hyperliquid-python-sdk = "0.10.1"
 requests = "^2.32.3"
-cryptography = ">=41.0.7"
 
 [build-system]
 requires = ["poetry-core"]

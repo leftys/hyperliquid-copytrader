@@ -1,7 +1,13 @@
 x-defaults: &defaults
   image: leftys/copytrader
-  env_file:
-    - .env
+  environment:
+    ACCOUNT_TO_COPY: ${ACCOUNT_TO_COPY}
+    TRADING_ADDRESS: ${TRADING_ADDRESS}
+    ACCOUNT_ADDRESS: ${ACCOUNT_ADDRESS}
+    VAULT_ADDRESS: ${VAULT_ADDRESS}
+    PRIVATE_KEY_API: ${PRIVATE_KEY_API}
+    LEVERAGE: ${LEVERAGE}
+    SLEEP_INTERVAL: ${SLEEP_INTERVAL}
   restart: unless-stopped
   stop_grace_period: 2s
   deploy:
