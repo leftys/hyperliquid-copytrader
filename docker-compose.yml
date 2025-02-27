@@ -1,0 +1,21 @@
+x-defaults: &defaults
+  image: leftys/copytrader
+  env_file:
+    - .env
+  restart: unless-stopped
+  stop_grace_period: 2s
+  deploy:
+    resources:
+      limits:
+        cpus: '0.1'
+        memory: 200M
+
+services:
+  order_bot:
+    <<: *defaults
+    command: python -u order_bot.py
+
+  position_bot:
+    <<: *defaults
+    command: python -u position_bot.py
+

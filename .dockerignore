@@ -1,0 +1,8 @@
+/deploy.env
+/.env
+/bazos.db
+/testing_bazos.db
+*.pyc
+/.psc_cache
+/bazos.db.bak*
+/.git

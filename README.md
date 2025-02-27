@@ -2,46 +2,30 @@
 
 Copy trading application for HyperLiquid.
 
-## Download
-1. Go to the [Releases](https://github.com/lucyCooked/hyperliquid-copytrader/releases) section
-2. Download the latest version for your operating system
-3. Extract the downloaded file
+## Dev requirements
+- Python 3.11+
+- Poetry
 
-## Prerequisites
-- Python 3.8+
-- Pip package manager
-- Linux server with SSH access
+For development you can just run the python modules locally after you fill in your .env based on env_sample.
 
-## Installation
+## Deployment howto
 
-1. Install Python 3.8+:
-   - Download the installer from [python.org](https://www.python.org/downloads/)
-   - Run the downloaded .pkg file
-   - Follow the installation wizard
-   - Verify installation: `python3 --version`
-
-2. Install required Python packages:
 ```bash
-pip install -r requirements.txt
+# Setup docker
+sudo apt install docker.io docker-compose-v2
+# Enable crosscompilation of docker images for arm64
+sudo apt-get install qemu binfmt-support qemu-user-static # Install the qemu packages
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes # This step will execute the registering scripts
+docker run --platform=linux/arm64/v8 --rm -t arm64v8/ubuntu uname -m # Testing the emulation environment
 ```
+You may need to add your user to docker group and relogin if the above fails.
 
-3. Install PM2 globally:
-```bash
-npm install pm2 -g
-```
+Then fill in .env based on env_sample and run `./deploy.sh -b`.
 
-4. For Mac users, build the application:
-```bash
-python build_mac.py
-```
+You can check logs from server using eg.
 
-The built application will be in the `dist` folder.
-
-## Scripts Overview
-
-# HyperLiquid Copy Trader
-
-
+   docker --context copytrader-remote compose --project-name copytrader logs -n 100 -f
+ 
 ## Scripts Overview
 
 ### OrderBot
@@ -62,34 +46,6 @@ A position-based copy trading bot:
 - Supports delayed trades for better entry prices
 - Provides detailed position monitoring and reporting
 - Handles position updates and closures
-
-## Controls
-- `Start Trading`: Bot begins monitoring and copying orders/positions that are below entry price from target address
-- `Stop Trading`: 
-  - Bot stops monitoring and copying new orders/positions
-  - Stops modifying existing orders
-  - Existing orders and positions remain open
-  - Manual cancellation required for open orders
-  - Manual closure required for open positions
-
-
-## Configuration
-1. Server details (required for connection):
-   - Server address
-   - Username
-   - Password
-
-2. Trading configuration:
-   - Address to copy trade
-   - Your Web3 wallet address
-   - Private key from API
-   - Position multiplier
-
-## Security Notice
-- Never share private keys
-- Use secure SSH connections
-- Store credentials safely
-- The application uses keyring for secure credential storage
 
 ## License
 MIT License

@@ -2,6 +2,7 @@ import asyncio
 import os
 import datetime
 import time
+import math
 from hyperliquid.info import Info
 import requests
 import eth_account
@@ -31,6 +32,7 @@ for asset_info in meta["universe"]:
 ACCOUNT_TO_COPY = os.getenv("ACCOUNT_TO_COPY")
 TRADING_ADDRESS = os.getenv("TRADING_ADDRESS")
 LEVERAGE = float(os.getenv("LEVERAGE", "5"))
+SLEEP_INTERVAL = float(os.getenv("SLEEP_INTERVAL", "5"))
 TRADE_LIMIT = 10  # min trade size $10
 MINI_ALLOC_OF_PF = 0  # mini allocation in percent
 
@@ -141,8 +143,21 @@ class TradingBot:
             print(f"Error in get_perpetuals_price: {e}")
             raise
 
+    async def cancel_all_orders_on_market(self, market):
+        open_orders = info.open_orders(TRADING_ADDRESS)
+            
+        for order in open_orders:
+            if order.get("coin") == market:
+                oid = order.get("oid")
+                cancel_result = exchange.cancel(market, oid)
+                if cancel_result["status"] != "ok":
+                    print(f"Failed to cancel order {oid} for {market}: {cancel_result}")
+
     async def execute_trade(self, market, order_type, position_type, size):
         try:
+            # Cancel all open orders for this market to avoid conflicts with order_bot if running as well
+            await self.cancel_all_orders_on_market(market)
+                
             size = round(float(size), sz_decimals[market])
             market_price = float((await self.get_perpetuals_price())[market])
             is_buy = order_type == "buy"
@@ -158,6 +173,7 @@ class TradingBot:
                         return False, f"Trade Error: {status.get('error', 'Unknown error')}"
             return False, "Order failed"
         except Exception as e:
+            print(f"Error executing trade: {e}")
             return False, f"Error executing trade: {e}"
 
     async def process_positions(self):
@@ -212,7 +228,7 @@ class TradingBot:
                     for action in pending_actions:
                         print(f"• {action}")
                 
-                await asyncio.sleep(5)
+                await asyncio.sleep(SLEEP_INTERVAL)
 
         except KeyboardInterrupt:
             print("\nShutting down...")
@@ -234,6 +250,7 @@ class TradingBot:
                 
                 copy_position_value = abs(copy_pos["szi"] * price)
                 target_size = (copy_position_value / copy_account_value) * my_account_value / price
+                target_size_signed = math.copysign(target_size, copy_pos["szi"])
                 my_pos = my_positions.get(coin)  # Changed this line to use dictionary get
                 
                 if not my_pos and copy_position_value > TRADE_LIMIT:
@@ -250,15 +267,15 @@ class TradingBot:
                 
                 elif my_pos:
                     current_size = abs(my_pos["szi"])
-                    size_diff = abs(target_size - current_size)
+                    size_diff = target_size_signed - my_pos['szi']
                     size_diff_value = size_diff * price
                     
-                    if size_diff_value > TRADE_LIMIT:
-                        is_size_up = target_size > current_size
+                    if abs(size_diff_value) > TRADE_LIMIT:
+                        is_size_up_and_same_dir = abs(target_size) > abs(current_size) and target_size * current_size > 0
                         
-                        if is_size_up:
-                            is_favorable = ((my_pos["szi"] > 0 and price <= entry_price) or 
-                                        (my_pos["szi"] < 0 and price >= entry_price))
+                        if is_size_up_and_same_dir:
+                            is_favorable = ((size_diff > 0 and price <= entry_price) or 
+                                        (size_diff < 0 and price >= entry_price))
                             
                             if not is_favorable:
                                 self.pending_changes[coin] = {
@@ -271,9 +288,9 @@ class TradingBot:
                         
                         success, msg = await self.execute_trade(
                             coin,
-                            "buy" if (my_pos["szi"] > 0) == is_size_up else "sell",
-                            "long" if my_pos["szi"] > 0 else "short",
-                            size_diff
+                            "buy" if size_diff > 0 else "sell",
+                            "long" if target_size_signed > 0 else "short",
+                            abs(size_diff)
                         )
                         if success:
                             actions.append(f"Adjusted position: {msg}")

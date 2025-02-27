@@ -389,6 +389,8 @@ class OrderBot:
         print("Cancelling all open orders...")
         orders = await self.get_open_orders(self.TRADING_ADDRESS)
         print(f"Found {len(orders)} open orders")
+        cancelled = 0
+        failed = 0
         
         for order in orders:
             try:
