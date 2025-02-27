@@ -16,7 +16,7 @@ load_dotenv()
 
 # Initialize Hyperliquid
 account: LocalAccount = eth_account.Account.from_key(os.getenv("PRIVATE_KEY_API"))
-exchange = Exchange(account, constants.MAINNET_API_URL)
+exchange = Exchange(account, constants.MAINNET_API_URL, vault_address= os.getenv("VAULT_ADDRESS", None), account_address=os.getenv("ACCOUNT_ADDRESS", None))
 info = Info(constants.MAINNET_API_URL, skip_ws=True)
 
 # Get exchange metadata
@@ -171,6 +171,7 @@ class TradingBot:
                         return True, f"{'Buy' if is_buy else 'Sell'} {filled['totalSz']} {market} @ ${float(filled['avgPx']):.2f}"
                     else:
                         return False, f"Trade Error: {status.get('error', 'Unknown error')}"
+            print(order_result)
             return False, "Order failed"
         except Exception as e:
             print(f"Error executing trade: {e}")

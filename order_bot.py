@@ -18,7 +18,7 @@ class OrderBot:
 
         # Initialize Hyperliquid
         self.account: LocalAccount = eth_account.Account.from_key(os.getenv("PRIVATE_KEY_API"))
-        self.exchange = Exchange(self.account, constants.MAINNET_API_URL)
+        self.exchange = Exchange(self.account, constants.MAINNET_API_URL, vault_address= os.getenv("VAULT_ADDRESS", None), account_address=os.getenv("ACCOUNT_ADDRESS", None))
         self.info = Info(constants.MAINNET_API_URL, skip_ws=False)  # Enable WebSocket
         self.info2 = Info(constants.MAINNET_API_URL, skip_ws=False)  # Enable WebSocket
 
