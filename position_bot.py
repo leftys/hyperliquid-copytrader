@@ -12,11 +12,16 @@ from hyperliquid.utils import constants
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 # Initialize Hyperliquid
 account: LocalAccount = eth_account.Account.from_key(os.getenv("PRIVATE_KEY_API"))
-exchange = Exchange(account, constants.MAINNET_API_URL, vault_address= os.getenv("VAULT_ADDRESS", None), account_address=os.getenv("ACCOUNT_ADDRESS", None))
+exchange = Exchange(
+    account, 
+    constants.MAINNET_API_URL, 
+    vault_address=os.getenv("VAULT_ADDRESS", "") or None, 
+    account_address=os.getenv("ACCOUNT_ADDRESS", "") or None
+)
 info = Info(constants.MAINNET_API_URL, skip_ws=True)
 
 # Get exchange metadata
@@ -60,7 +65,7 @@ class TradingBot:
         self.trading_address = trading_address
         self.account_to_copy = account_to_copy
         self.path_file = path_file
-        self.pending_changes = {}
+        # self.pending_changes = {}
         self.previous_positions = {}
 
     async def get_position(self, account):
@@ -202,22 +207,22 @@ class TradingBot:
                 print_position_summary(my_positions, "Copy Account Positions")
 
                 # Process pending changes
-                if self.pending_changes:
-                    for market, change in list(self.pending_changes.items()):
-                        current_price = float(prices[market])
-                        is_price_favorable = (change["direction"] == "long" and current_price <= change["entryPrice"]) or \
-                                          (change["direction"] == "short" and current_price >= change["entryPrice"])
+                # if self.pending_changes:
+                #     for market, change in list(self.pending_changes.items()):
+                #         current_price = float(prices[market])
+                #         is_price_favorable = (change["direction"] == "long" and current_price <= change["entryPrice"]) or \
+                #                           (change["direction"] == "short" and current_price >= change["entryPrice"])
                         
-                        if is_price_favorable:
-                            success, msg = await self.execute_trade(
-                                market,
-                                "buy" if change["direction"] == "long" else "sell",
-                                change["direction"],
-                                abs(change["targetSize"])
-                            )
-                            if success:
-                                pending_actions.append(f"Executed delayed trade: {msg}")
-                            del self.pending_changes[market]
+                #         if is_price_favorable:
+                #             success, msg = await self.execute_trade(
+                #                 market,
+                #                 "buy" if change["direction"] == "long" else "sell",
+                #                 change["direction"],
+                #                 abs(change["size"])
+                #             )
+                #             if success:
+                #                 pending_actions.append(f"Executed delayed trade: {msg}")
+                #             del self.pending_changes[market]
 
                 # Process position updates
                 updates = await self.update_positions(my_positions, copy_positions, prices)
@@ -279,12 +284,12 @@ class TradingBot:
                                         (size_diff < 0 and price >= entry_price))
                             
                             if not is_favorable:
-                                self.pending_changes[coin] = {
-                                    "timestamp": time.time(),
-                                    "targetSize": target_size,
-                                    "direction": "long" if my_pos["szi"] > 0 else "short",
-                                    "entryPrice": entry_price
-                                }
+                                # self.pending_changes[coin] = {
+                                #     "timestamp": time.time(),
+                                #     "size": abs(size_diff),
+                                #     "direction": "long" if size_diff > 0 else "short",
+                                #     "entryPrice": entry_price
+                                # }
                                 continue
                         
                         success, msg = await self.execute_trade(

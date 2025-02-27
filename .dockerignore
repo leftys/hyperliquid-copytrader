@@ -1,5 +1,5 @@
 /deploy.env
-/.env
+/.env*
 /bazos.db
 /testing_bazos.db
 *.pyc

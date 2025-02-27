@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 class OrderBot:
     def __init__(self):
         # Load environment variables from .env file
-        load_dotenv()
+        load_dotenv(override=True)
 
         # Initialize Hyperliquid
         self.account: LocalAccount = eth_account.Account.from_key(os.getenv("PRIVATE_KEY_API"))
