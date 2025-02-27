@@ -8,3 +8,5 @@ venv/
 *Backup.py
 *.md
 readme-md.md
+/env
+/.env

@@ -1,7 +1,6 @@
 import asyncio
 import os
 import datetime
-import math
 import time
 from hyperliquid.info import Info
 import requests
@@ -9,9 +8,7 @@ import eth_account
 from eth_account.signers.local import LocalAccount
 from hyperliquid.exchange import Exchange
 from hyperliquid.utils import constants
-import json
 from dotenv import load_dotenv
-import csv
 
 # Load environment variables
 load_dotenv()
@@ -191,8 +188,8 @@ class TradingBot:
                 if self.pending_changes:
                     for market, change in list(self.pending_changes.items()):
                         current_price = float(prices[market])
-                        is_price_favorable = (change["direction"] == "long" and current_price < change["entryPrice"]) or \
-                                          (change["direction"] == "short" and current_price > change["entryPrice"])
+                        is_price_favorable = (change["direction"] == "long" and current_price <= change["entryPrice"]) or \
+                                          (change["direction"] == "short" and current_price >= change["entryPrice"])
                         
                         if is_price_favorable:
                             success, msg = await self.execute_trade(
@@ -215,8 +212,11 @@ class TradingBot:
                     for action in pending_actions:
                         print(f"• {action}")
                 
-                await asyncio.sleep(30)
+                await asyncio.sleep(5)
 
+        except KeyboardInterrupt:
+            print("\nShutting down...")
+            return
         except Exception as e:
             print(f"Error in process_positions: {e}")
             await asyncio.sleep(5)
@@ -257,8 +257,8 @@ class TradingBot:
                         is_size_up = target_size > current_size
                         
                         if is_size_up:
-                            is_favorable = ((my_pos["szi"] > 0 and price < entry_price) or 
-                                        (my_pos["szi"] < 0 and price > entry_price))
+                            is_favorable = ((my_pos["szi"] > 0 and price <= entry_price) or 
+                                        (my_pos["szi"] < 0 and price >= entry_price))
                             
                             if not is_favorable:
                                 self.pending_changes[coin] = {
