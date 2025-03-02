@@ -13,8 +13,8 @@ x-defaults: &defaults
   deploy:
     resources:
       limits:
-        cpus: '0.1'
-        memory: 200M
+        cpus: '0.2'
+        memory: 150M
 
 services:
   order_bot:

@@ -13,8 +13,15 @@ set -e
 # Automatically export all variables
 set -a
 
+PROFILE="copytrader"
+
+if [ -n "$2" ]; then
+    PROFILE=$2
+fi
+
 # Load and export configuration
 source deploy.env
+source .env${PROFILE}
 
 # Setup remote Docker context
 CONTEXT_NAME="copytrader-remote"
@@ -33,7 +40,7 @@ export REGISTRY=""
 # export DOCKER_OPTS="--insecure-registry $REGISTRY"
 
 if [ "$1" = "-b" ]; then
-    shift # rotate $2 to $1 etc
+    #shift # rotate $2 to $1 etc
 
     echo "Building image locally and pushing to registry"
     # docker-compose build
@@ -55,6 +62,6 @@ fi
 
 # Deploy on remote
 echo "Deploying on remote..."
-docker --context ${CONTEXT_NAME} compose --project-name copytrader up -d --pull always $1
+docker --context ${CONTEXT_NAME} compose --project-name ${PROFILE} up -d --pull always $3
 
 echo "Deployment complete!"
