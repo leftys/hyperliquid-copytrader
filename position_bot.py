@@ -1,12 +1,11 @@
 import asyncio
 import os
 import datetime
-import time
 import math
-from hyperliquid.info import Info
 import requests
 import eth_account
 from eth_account.signers.local import LocalAccount
+from hyperliquid.info import Info
 from hyperliquid.exchange import Exchange
 from hyperliquid.utils import constants
 from dotenv import load_dotenv
@@ -175,6 +174,7 @@ class TradingBot:
                         filled = status["filled"]
                         return True, f"{'Buy' if is_buy else 'Sell'} {filled['totalSz']} {market} @ ${float(filled['avgPx']):.2f}"
                     else:
+                        print(status)
                         return False, f"Trade Error: {status.get('error', 'Unknown error')}"
             print(order_result)
             return False, "Order failed"
@@ -257,9 +257,10 @@ class TradingBot:
                 copy_position_value = abs(copy_pos["szi"] * price)
                 target_size = (copy_position_value / copy_account_value) * my_account_value / price
                 target_size_signed = math.copysign(target_size, copy_pos["szi"])
+                target_size_value = target_size * price
                 my_pos = my_positions.get(coin)  # Changed this line to use dictionary get
                 
-                if not my_pos and copy_position_value > TRADE_LIMIT:
+                if not my_pos and target_size_value > TRADE_LIMIT:
                     if ((copy_pos["szi"] > 0 and price < entry_price) or 
                         (copy_pos["szi"] < 0 and price > entry_price)):
                         success, msg = await self.execute_trade(
