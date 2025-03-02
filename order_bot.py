@@ -33,6 +33,7 @@ class OrderBot:
         self.LEVERAGE = float(os.getenv("LEVERAGE", "5"))
         self.TRADE_LIMIT = 10
         self.MINI_ALLOC_OF_PF = 0
+        self.SLEEP_INTERVAL = int(os.getenv("SLEEP_INTERVAL", "5"))
 
         # Get exchange metadata
         meta = self.info.meta()
@@ -180,7 +181,7 @@ class OrderBot:
             key = f"{coin}-{side}-{limit_price}"
 
             if len(self.loop._ready) > 20:
-                # Too many orders pending! Skip some
+                print("Too many orders pending, skipping...")
                 return
             
             # Store the order and status for processing in the main event loop
@@ -210,7 +211,7 @@ class OrderBot:
             
             # Periodically update account values (not on every order update)
             current_time = datetime.datetime.now().timestamp()
-            if current_time - self.last_sync_time > 60:  # Update every minute
+            if current_time - self.last_sync_time > 10*60:  # Update every 10 minutes
                 await self.update_account_values()
                 self.last_sync_time = current_time
         except Exception as e:
@@ -255,6 +256,7 @@ class OrderBot:
                 if key in self.my_orders:
                     del self.my_orders[key]
             elif status == 'filled':
+                print(f'Filled order: {order["coin"]} {order["side"]} {float(order["origSz"])-float(order["sz"])}@{order["limitPx"]} (size so far)')
                 if float(order['sz']) == 0:
                     # Order is fully filled
                     if key in self.my_orders:
@@ -276,7 +278,7 @@ class OrderBot:
             reduce_only = copy_order.get('reduceOnly', False)
             
             key = f"{coin}-{side}-{limit_price}"
-            existing_order = self.my_orders.get(key)
+            existing_order = self.my_orders.get(key, None)
             
             # Scale the order size based on account values and leverage
             scaled_size = (order_size * self.my_account_value) / self.copy_account_value
@@ -291,9 +293,10 @@ class OrderBot:
                     print(f"Skipping order for {coin} @ ${limit_price}: Order size {scaled_size} too small")
                     return
                 if scaled_nominal < self.TRADE_LIMIT:
-                    print(f"Skipping order for {coin} @ ${limit_price}: Order nominal  {scaled_nominal} too small")
+                    print(f"Skipping order for {coin} @ ${limit_price}: Order nominal {scaled_nominal} too small")
                     return
 
+                print(f"Syncing order for {coin} {side} {scaled_size}@${limit_price}")
                 await self.place_limit_order(
                     coin,
                     side == 'B',  # True for buy, False for sell
@@ -336,18 +339,13 @@ class OrderBot:
             raw_my_account_value = await self.get_account_value(self.TRADING_ADDRESS)
             self.my_account_value = raw_my_account_value * self.LEVERAGE
             
-            print(f"\nAccount values updated:")
-            print(f"Copy account: ${self.copy_account_value:,.2f}")
-            print(f"My account (with {self.LEVERAGE}x leverage): ${self.my_account_value:,.2f}")
-            
+            print(f"Account values updated: Copy account: ${self.copy_account_value:,.2f}. My account (with {self.LEVERAGE}x leverage): ${self.my_account_value:,.2f}")
         except Exception as e:
             print(f"Error updating account values: {e}")
 
-    async def initial_sync(self):
+    async def snapshot_sync(self, initial):
         """Perform initial synchronization of orders"""
         try:
-            print("Performing initial synchronization...")
-            
             # Update account values
             await self.update_account_values()
             
@@ -363,10 +361,13 @@ class OrderBot:
             for order in my_orders:
                 key = f"{order['coin']}-{order['side']}-{order['limitPx']}"
                 self.my_orders[key] = order
-            
-            # Print initial order summary
-            self.print_order_summary(copy_orders, "Copy Account Orders")
-            self.print_order_summary(my_orders, "My Orders")
+
+            if len(copy_orders) != len(my_orders) or initial:
+                if initial:
+                    print("Initial sync started")
+                # Print initial order summary
+                self.print_order_summary(copy_orders, "Copy Account Orders")
+                self.print_order_summary(my_orders, "My Orders")
             
             # Cancel orders that don't match the copy account
             cancelled_count = 0
@@ -383,7 +384,6 @@ class OrderBot:
                     await self.sync_order(order)
                     placed_count += 1
             
-            print(f"Initial sync complete: {cancelled_count} orders cancelled, {placed_count} new orders placed")
             self.last_sync_time = datetime.datetime.now().timestamp()
             
         except Exception as e:
@@ -436,7 +436,7 @@ class OrderBot:
         
         try:
             # Perform initial synchronization
-            # await self.initial_sync()
+            await self.snapshot_sync(initial = True)
             
             # Subscribe to order updates for both accounts
             print("Setting up WebSocket subscriptions...")
@@ -453,8 +453,8 @@ class OrderBot:
             
             # Keep the main task alive
             while True:
-                await asyncio.sleep(60)  # Just keep the main task alive
-                print("Bot is running... (heartbeat)")
+                await asyncio.sleep(self.SLEEP_INTERVAL)  # Just keep the main task alive
+                await self.snapshot_sync(initial = False)
                 
         except asyncio.CancelledError:
             print("Bot operation cancelled")
