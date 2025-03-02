@@ -9,9 +9,13 @@ from hyperliquid.info import Info
 from hyperliquid.exchange import Exchange
 from hyperliquid.utils import constants
 from dotenv import load_dotenv
+from logger_config import setup_logging
 
 # Load environment variables
 load_dotenv(override=True)
+
+# Initialize logger
+logger = setup_logging('position_bot')
 
 # Initialize Hyperliquid
 account: LocalAccount = eth_account.Account.from_key(os.getenv("PRIVATE_KEY_API"))
@@ -25,7 +29,6 @@ info = Info(constants.MAINNET_API_URL, skip_ws=True)
 
 # Get exchange metadata
 meta = info.meta()
-print('restarted again')
 
 # Create szDecimals map
 sz_decimals = {}
@@ -42,10 +45,10 @@ MINI_ALLOC_OF_PF = 0  # mini allocation in percent
 
 def print_position_summary(positions, title):
     if not positions:
-        print(f"\n{title}: No open positions")
+        logger.info(f"\n{title}: No open positions")
         return
         
-    print(f"\n{title}:")
+    logger.info(f"\n{title}:")
     total_value = 0
     
     for coin, pos in positions.items():
@@ -55,17 +58,17 @@ def print_position_summary(positions, title):
         value = abs(pos["positionValue"])
         total_value += value
         
-        print(f"  {coin}: {direction} {size:.4f} @ ${entry_price:.2f} ({value:.2f}%)")
+        logger.info(f"  {coin}: {direction} {size:.4f} @ ${entry_price:.2f} ({value:.2f}%)")
     
-    print(f"\nTotal Position Value: {total_value:.2f}%")
+    logger.info(f"\nTotal Position Value: {total_value:.2f}%")
 
 class TradingBot:
     def __init__(self, trading_address, account_to_copy, path_file):
         self.trading_address = trading_address
         self.account_to_copy = account_to_copy
         self.path_file = path_file
-        # self.pending_changes = {}
         self.previous_positions = {}
+        logger.info(f"Initialized TradingBot with trading_address={trading_address}, account_to_copy={account_to_copy}")
 
     async def get_position(self, account):
         try:
@@ -94,41 +97,45 @@ class TradingBot:
             }
             return position_data
         except Exception as e:
-            print(f"Error in get_position: {e}")
+            logger.exception(f"Error in get_position for account {account}")
             raise
 
     async def get_allocations(self, account):
-        top = [await self.get_position(account)]
-        total_account_value = float(top[0]["accountValue"])
-        positions = {}
-        
-        for item in top:
-            for pos in item["assetPositions"]:
-                coin = pos["position"]["coin"]
-                entry_px = float(pos["position"]["entryPx"])
-                szi = float(pos["position"]["szi"])
-                position_value = float(pos["position"]["positionValue"])
-                
-                if szi < 0:
-                    position_value = -position_value
+        try:
+            top = [await self.get_position(account)]
+            total_account_value = float(top[0]["accountValue"])
+            positions = {}
+            
+            for item in top:
+                for pos in item["assetPositions"]:
+                    coin = pos["position"]["coin"]
+                    entry_px = float(pos["position"]["entryPx"])
+                    szi = float(pos["position"]["szi"])
+                    position_value = float(pos["position"]["positionValue"])
                     
-                if coin in positions:
-                    positions[coin]["positionValue"] += position_value
-                    positions[coin]["szi"] += szi
-                    positions[coin]["entryPxTotal"] += entry_px
-                else:
-                    positions[coin] = {
-                        "positionValue": position_value,
-                        "szi": szi,
-                        "entryPxTotal": entry_px
-                    }
+                    if szi < 0:
+                        position_value = -position_value
+                        
+                    if coin in positions:
+                        positions[coin]["positionValue"] += position_value
+                        positions[coin]["szi"] += szi
+                        positions[coin]["entryPxTotal"] += entry_px
+                    else:
+                        positions[coin] = {
+                            "positionValue": position_value,
+                            "szi": szi,
+                            "entryPxTotal": entry_px
+                        }
 
-        # Calculate percentages and round values
-        for coin in positions:
-            positions[coin]["positionValue"] = round((positions[coin]["positionValue"] / total_account_value) * 100, 2)
-            positions[coin]["szi"] = round(positions[coin]["szi"], 5)
+            # Calculate percentages and round values
+            for coin in positions:
+                positions[coin]["positionValue"] = round((positions[coin]["positionValue"] / total_account_value) * 100, 2)
+                positions[coin]["szi"] = round(positions[coin]["szi"], 5)
 
-        return dict(sorted(positions.items(), key=lambda x: abs(x[1]["positionValue"]), reverse=True))
+            return dict(sorted(positions.items(), key=lambda x: abs(x[1]["positionValue"]), reverse=True))
+        except Exception as e:
+            logger.exception(f"Error in get_allocations for account {account}")
+            raise
 
     async def get_perpetuals_price(self):
         try:
@@ -144,18 +151,22 @@ class TradingBot:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error in get_perpetuals_price: {e}")
+            logger.exception(f"Error in get_perpetuals_price")
             raise
 
     async def cancel_all_orders_on_market(self, market):
-        open_orders = info.open_orders(TRADING_ADDRESS)
-            
-        for order in open_orders:
-            if order.get("coin") == market:
-                oid = order.get("oid")
-                cancel_result = exchange.cancel(market, oid)
-                if cancel_result["status"] != "ok":
-                    print(f"Failed to cancel order {oid} for {market}: {cancel_result}")
+        try:
+            open_orders = info.open_orders(TRADING_ADDRESS)
+                
+            for order in open_orders:
+                if order.get("coin") == market:
+                    oid = order.get("oid")
+                    cancel_result = exchange.cancel(market, oid)
+                    if cancel_result["status"] != "ok":
+                        logger.error(f"Failed to cancel order {oid} for {market}: {cancel_result}")
+        except Exception as e:
+            logger.exception(f"Error in cancel_all_orders_on_market for {market}")
+            raise
 
     async def execute_trade(self, market, order_type, position_type, size):
         try:
@@ -166,21 +177,27 @@ class TradingBot:
             market_price = float((await self.get_perpetuals_price())[market])
             is_buy = order_type == "buy"
             
+            logger.info(f"Executing {order_type} trade for {size} {market} at market price ${market_price}")
+            
             order_result = exchange.market_open(market, is_buy, size, market_price, 0.01)
             
             if order_result["status"] == "ok":
                 for status in order_result["response"]["data"]["statuses"]:
                     if "filled" in status:
                         filled = status["filled"]
-                        return True, f"{'Buy' if is_buy else 'Sell'} {filled['totalSz']} {market} @ ${float(filled['avgPx']):.2f}"
+                        trade_msg = f"{'Buy' if is_buy else 'Sell'} {filled['totalSz']} {market} @ ${float(filled['avgPx']):.2f}"
+                        logger.info(f"Trade executed successfully: {trade_msg}")
+                        return True, trade_msg
                     else:
-                        print(status)
-                        return False, f"Trade Error: {status.get('error', 'Unknown error')}"
-            print(order_result)
+                        error_msg = f"Trade Error: {status.get('error', 'Unknown error')}"
+                        logger.error(error_msg)
+                        return False, error_msg
+            logger.error(f"Order failed: {order_result}")
             return False, "Order failed"
         except Exception as e:
-            print(f"Error executing trade: {e}")
-            return False, f"Error executing trade: {e}"
+            error_msg = f"Error executing trade: {str(e)}"
+            logger.exception(error_msg)
+            return False, error_msg
 
     async def process_positions(self):
         try:
@@ -191,9 +208,9 @@ class TradingBot:
                 copy_account_value = float(await self.get_balance(self.account_to_copy))
                 my_account_value = float(await self.get_balance(self.trading_address)) * LEVERAGE
                 
-                print(f"\n=== Position Update {current_time} ===")
-                print(f"Master Account: ${copy_account_value:,.2f}")
-                print(f"Copy Account: ${my_account_value:,.2f} (with {LEVERAGE}x leverage)")
+                logger.info(f"\n=== Position Update {current_time} ===")
+                logger.info(f"Master Account: ${copy_account_value:,.2f}")
+                logger.info(f"Copy Account: ${my_account_value:,.2f} (with {LEVERAGE}x leverage)")
                 
                 # Get current market prices
                 prices = await self.get_perpetuals_price()
@@ -230,17 +247,17 @@ class TradingBot:
 
                 # Print updates if any changes were made
                 if pending_actions:
-                    print("\nPosition Updates:")
+                    logger.info("\nPosition Updates:")
                     for action in pending_actions:
-                        print(f"• {action}")
+                        logger.info(f"• {action}")
                 
                 await asyncio.sleep(SLEEP_INTERVAL)
 
         except KeyboardInterrupt:
-            print("\nShutting down...")
+            logger.info("\nShutting down...")
             return
         except Exception as e:
-            print(f"Error in process_positions: {e}")
+            logger.error(f"Error in process_positions: {str(e)}", exc_info=True)
             await asyncio.sleep(5)
             await self.process_positions()
 
@@ -317,7 +334,7 @@ class TradingBot:
             return actions
             
         except Exception as e:
-            print(f"Error in update_positions: {e}")
+            logger.exception(f"Error in update_positions")
             return actions
 
     async def get_balance(self, address):
@@ -337,7 +354,7 @@ class TradingBot:
                 raise ValueError("Invalid response format")
             return data["crossMarginSummary"]["accountValue"]
         except Exception as e:
-            print(f"Error in get_balance: {e}")
+            logger.exception(f"Error in get_balance")
             raise
 
 async def main():

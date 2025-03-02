@@ -12,6 +12,7 @@ python-dotenv = "^1.0.0"
 eth-account = "0.10.0"
 hyperliquid-python-sdk = "0.10.1"
 requests = "^2.32.3"
+sentry-sdk = "^2.22.0"
 
 [build-system]
 requires = ["poetry-core"]

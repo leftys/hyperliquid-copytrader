@@ -1,8 +1,0 @@
-PyInstaller==6.11.0
-paramiko==3.5.0
-python-dotenv==1.0.0
-eth-account==0.10.0
-hyperliquid-python-sdk==0.10.1
-requests==2.31.0
-cryptography>=41.0.7
-keyring==24.3.0

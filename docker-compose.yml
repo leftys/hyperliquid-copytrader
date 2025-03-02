@@ -8,6 +8,9 @@ x-defaults: &defaults
     PRIVATE_KEY_API: ${PRIVATE_KEY_API}
     LEVERAGE: ${LEVERAGE}
     SLEEP_INTERVAL: ${SLEEP_INTERVAL}
+    SENTRY_DSN: ${SENTRY_DSN}
+    ENVIRONMENT: ${ENVIRONMENT}
+    PROFILE: ${PROFILE}
   restart: unless-stopped
   stop_grace_period: 2s
   deploy:
@@ -19,9 +22,12 @@ x-defaults: &defaults
 services:
   order_bot:
     <<: *defaults
+    environment:
+      RELEASE: ${COMPOSE_PROJECT_NAME:-copytrader}-order_bot-${IMAGE_HASH:-latest}
     command: python -u order_bot.py
 
   position_bot:
     <<: *defaults
+    environment:
+      RELEASE: ${COMPOSE_PROJECT_NAME:-copytrader}-position_bot-${IMAGE_HASH:-latest}
     command: python -u position_bot.py
-

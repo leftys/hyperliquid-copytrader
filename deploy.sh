@@ -60,6 +60,9 @@ if [ "$1" = "-b" ]; then
     # REGISTRY="localhost:5000/" docker --context ${CONTEXT_NAME} pull localhost:5000/bazos-app
 fi
 
+# Get image hash and export it for docker-compose
+export IMAGE_HASH=$(docker images --no-trunc --quiet leftys/copytrader)
+
 # Deploy on remote
 echo "Deploying on remote..."
 docker --context ${CONTEXT_NAME} compose --project-name ${PROFILE} up -d --pull always $3

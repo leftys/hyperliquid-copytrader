@@ -1,4 +1,4 @@
-#!/bin/bash
+    #!/bin/bash
 # deploy_all.sh - Run deploy script for all profiles
 # Usage: ./deploy_all.sh [deploy_options]
 # Example: ./deploy_all.sh -b
@@ -8,6 +8,12 @@ set -e
 
 # Get all .env* files except for the plain .env file
 ENV_FILES=$(find . -maxdepth 1 -type f -name ".env*" ! -name ".env" | sort)
+
+if [ "$1" = "-b" ]; then
+    shift
+    docker build -f Dockerfile --platform=$ARCH -t leftys/copytrader --progress=plain .
+    docker push leftys/copytrader
+fi
 
 # Extract profile names and run deploy for each
 for ENV_FILE in $ENV_FILES; do
