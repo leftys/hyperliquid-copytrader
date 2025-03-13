@@ -28,7 +28,7 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 ENV PYTHONUNBUFFERED=1 PYTHONPATH=/app
 
 # Copy application code
-COPY order_bot.py position_bot.py .
+COPY *.py .
 
 # Create non-root user and set up permissions
 # RUN useradd -r -u 200 appuser \

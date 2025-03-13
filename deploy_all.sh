@@ -10,6 +10,7 @@ set -e
 ENV_FILES=$(find . -maxdepth 1 -type f -name ".env*" ! -name ".env" | sort)
 
 if [ "$1" = "-b" ]; then
+    . deploy.env
     shift
     docker build -f Dockerfile --platform=$ARCH -t leftys/copytrader --progress=plain .
     docker push leftys/copytrader

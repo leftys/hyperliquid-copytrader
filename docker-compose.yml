@@ -1,16 +1,19 @@
+x-env: &env
+  ACCOUNT_TO_COPY: ${ACCOUNT_TO_COPY}
+  TRADING_ADDRESS: ${TRADING_ADDRESS}
+  ACCOUNT_ADDRESS: ${ACCOUNT_ADDRESS}
+  VAULT_ADDRESS: ${VAULT_ADDRESS}
+  PRIVATE_KEY_API: ${PRIVATE_KEY_API}
+  LEVERAGE: ${LEVERAGE}
+  SLEEP_INTERVAL: ${SLEEP_INTERVAL}
+  SENTRY_DSN: ${SENTRY_DSN}
+  ENVIRONMENT: ${ENVIRONMENT}
+  PROFILE: ${PROFILE}
+
 x-defaults: &defaults
   image: leftys/copytrader
   environment:
-    ACCOUNT_TO_COPY: ${ACCOUNT_TO_COPY}
-    TRADING_ADDRESS: ${TRADING_ADDRESS}
-    ACCOUNT_ADDRESS: ${ACCOUNT_ADDRESS}
-    VAULT_ADDRESS: ${VAULT_ADDRESS}
-    PRIVATE_KEY_API: ${PRIVATE_KEY_API}
-    LEVERAGE: ${LEVERAGE}
-    SLEEP_INTERVAL: ${SLEEP_INTERVAL}
-    SENTRY_DSN: ${SENTRY_DSN}
-    ENVIRONMENT: ${ENVIRONMENT}
-    PROFILE: ${PROFILE}
+    <<: *env
   restart: unless-stopped
   stop_grace_period: 2s
   deploy:
@@ -23,11 +26,13 @@ services:
   order_bot:
     <<: *defaults
     environment:
+      <<: *env
       RELEASE: ${COMPOSE_PROJECT_NAME:-copytrader}-order_bot-${IMAGE_HASH:-latest}
     command: python -u order_bot.py
 
   position_bot:
     <<: *defaults
     environment:
+      <<: *env
       RELEASE: ${COMPOSE_PROJECT_NAME:-copytrader}-position_bot-${IMAGE_HASH:-latest}
     command: python -u position_bot.py
