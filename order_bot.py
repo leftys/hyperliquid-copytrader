@@ -457,9 +457,9 @@ class OrderBot:
             self.executor.shutdown(wait=True)
         
         # Ensure Sentry events are sent
-        client = sentry_sdk.Hub.current.client
-        if client is not None:
-            client.flush(timeout=2.0)
+        # client = sentry_sdk.Hub.current.client
+        # if client is not None:
+        #     client.flush(timeout=2.0)
             
         logger.info("Shutdown complete")
 
