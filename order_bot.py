@@ -121,8 +121,17 @@ class OrderBot:
             if order_result["status"] == "ok":
                 status = order_result["response"]["data"]["statuses"][0]
                 if "error" in status:
-                    logger.error(f"Error in order response for {coin}: {status['error']}")
-                    return False
+                    if status["error"].startswith("Reduce only order would increase position") and reduce_only:
+                        logger.info(f"Reduce only order would increase position for {size} {coin} @ ${price}, shrinking")
+                        new_size = size * 0.75
+                        min_size = 1 / (10 ** self.sz_decimals[coin])
+                        if new_size < min_size or new_size * price < self.TRADE_LIMIT:
+                            logger.info(f"New size {new_size} is too small, skipping order")
+                            return False
+                        return await self.place_limit_order(coin, is_buy, new_size, price, reduce_only)
+                    else:
+                        logger.error(f"Error in order response for {coin}: {status['error']}")
+                        return False
                 logger.info(f"Successfully placed {order_type} order for {size} {coin} @ ${price}")
                 return True
             logger.error(f"Error placing limit order for {coin}: {order_result}")
