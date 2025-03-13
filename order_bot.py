@@ -7,9 +7,9 @@ import eth_account
 from eth_account.signers.local import LocalAccount
 from hyperliquid.exchange import Exchange
 from hyperliquid.utils import constants
-import json
 from dotenv import load_dotenv
 from logger_config import setup_logging
+import math
 
 # Load environment variables from .env file
 load_dotenv(override=True)
@@ -45,7 +45,7 @@ class OrderBot:
         self.sz_decimals = {}
         for asset_info in meta["universe"]:
             self.sz_decimals[asset_info["name"]] = asset_info["szDecimals"]
-            
+        
         # Store copy account orders and my orders
         self.copy_account_orders = {}
         self.my_orders = {}
@@ -123,14 +123,14 @@ class OrderBot:
                 if "error" in status:
                     if status["error"].startswith("Reduce only order would increase position") and reduce_only:
                         logger.info(f"Reduce only order would increase position for {size} {coin} @ ${price}, shrinking")
-                        new_size = size * 0.75
+                        new_size = self.floor_to_decimals(size * 0.75, self.sz_decimals[coin])
                         min_size = 1 / (10 ** self.sz_decimals[coin])
                         if new_size < min_size or new_size * price < self.TRADE_LIMIT:
                             logger.info(f"New size {new_size} is too small, skipping order")
                             return False
                         return await self.place_limit_order(coin, is_buy, new_size, price, reduce_only)
                     else:
-                        logger.error(f"Error in order response for {coin}: {status['error']}")
+                        logger.error(f"Error in order response for {coin} {size} @ ${price}: {status['error']}")
                         return False
                 logger.info(f"Successfully placed {order_type} order for {size} {coin} @ ${price}")
                 return True
@@ -308,7 +308,7 @@ class OrderBot:
             
             # Scale the order size based on account values and leverage
             scaled_size = (order_size * self.my_account_value) / self.copy_account_value
-            scaled_size = round(scaled_size, self.sz_decimals[coin])
+            scaled_size = self.floor_to_decimals(scaled_size, self.sz_decimals[coin])
             scaled_nominal = scaled_size * limit_price
             min_size = 1 / (10 ** self.sz_decimals[coin])
             
@@ -497,6 +497,13 @@ class OrderBot:
             logger.exception("Error in main loop")
         finally:
             await self.shutdown()
+
+    @staticmethod
+    def floor_to_decimals(value, decimals):
+        ''' Floor value, but if its like 0.29999 make it 0.3 '''
+        value = round(value, decimals + 1)
+        factor = 10 ** decimals
+        return math.floor(value * factor) / factor
 
 async def main():
     bot = OrderBot()
