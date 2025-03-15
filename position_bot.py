@@ -175,6 +175,11 @@ class TradingBot:
                 
             size = round(float(size), sz_decimals[market])
             market_price = float((await self.get_perpetuals_price())[market])
+
+            if size * market_price < TRADE_LIMIT:
+                logger.info(f"Trade size {size} {market} is below minimum trade limit ${TRADE_LIMIT}")
+                return False, f"Trade size {size} {market} is below minimum trade limit ${TRADE_LIMIT}"
+
             is_buy = order_type == "buy"
             
             logger.info(f"Executing {order_type} trade for {size} {market} at market price ${market_price}")
