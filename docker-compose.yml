@@ -21,6 +21,13 @@ x-defaults: &defaults
       limits:
         cpus: '0.2'
         memory: 150M
+  healthcheck:
+    # test: ["CMD", "/usr/bin/find", "/proc/1/fd/1", "-mmin", "+5", "-exec", "/usr/bin/false", "{}", "+"]
+    test: ["CMD", "curl", "-f", "http://localhost:8181/healthz"]
+    start_period: 10s
+    interval: 60s
+    timeout: 5s
+    retries: 2
 
 services:
   order_bot:

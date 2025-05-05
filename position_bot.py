@@ -10,6 +10,7 @@ from hyperliquid.exchange import Exchange
 from hyperliquid.utils import constants
 from dotenv import load_dotenv
 from logger_config import setup_logging
+import healthcheck
 
 # Load environment variables
 load_dotenv(override=True)

@@ -1,5 +1,6 @@
 import logging
 import os
+import socket
 import sentry_sdk
 from sentry_sdk.integrations.logging import LoggingIntegration
 
@@ -9,7 +10,8 @@ def setup_logging(service_name):
 
     # Configure Sentry
     sentry_dsn = os.getenv('SENTRY_DSN', '')
-    if sentry_dsn:
+    hostname = socket.gethostname()
+    if sentry_dsn and hostname != 'carbon': # Do not send logs from developer machine 'carbon'
         sentry_logging = LoggingIntegration(
             level=logging.INFO,        # Capture info and above as breadcrumbs
             event_level=logging.ERROR  # Send errors as events

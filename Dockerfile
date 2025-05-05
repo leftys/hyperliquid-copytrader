@@ -19,6 +19,10 @@ RUN export PATH="$PATH:$HOME/.local/bin" && \
 # Production stage
 FROM python:3.11-alpine
 
+# For healthcheck
+RUN apk add --no-cache \
+    curl 
+
 WORKDIR /app
 
 # Copy only the installed packages from builder
